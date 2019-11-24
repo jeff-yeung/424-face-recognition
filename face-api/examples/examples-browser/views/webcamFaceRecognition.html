@@ -4,113 +4,183 @@
   <script src="face-api.js"></script>
   <script src="js/commons.js"></script>
   <script src="js/faceDetectionControls.js"></script>
+  <script src="js/imageSelectionControls.js"></script>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.css">
+  <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/js/materialize.min.js"></script>
 </head>
+
 <body>
+  <div id="navbar"></div>
+  <div class="center-content page-container">
+
+    <div class="progress" id="loader">
+      <div class="indeterminate"></div>
+    </div>
 
     <div style="position: relative" class="margin">
-      <video onloadedmetadata="onPlay(this)" id="inputVideo" autoplay muted playsinline></video>
+      <video onplay="onPlay(this)" id="inputVideo" autoplay muted playsinline></video>
       <canvas id="overlay" />
     </div>
 
-    
+    <!-- ssd_mobilenetv1_controls -->
+    <span id="ssd_mobilenetv1_controls">
+      <div class="row side-by-side">
+        <div class="row">
+          <label for="minConfidence">Min Confidence:</label>
+          <input disabled value="0.5" id="minConfidence" type="text" class="bold">
+        </div>
+        <button
+          class="waves-effect waves-light btn"
+          onclick="onDecreaseMinConfidence()"
+        >
+          <i class="material-icons left">-</i>
+        </button>
+        <button
+          class="waves-effect waves-light btn"
+          onclick="onIncreaseMinConfidence()"
+        >
+          <i class="material-icons left">+</i>
+        </button>
+      </div>
+    </span>
+    <!-- ssd_mobilenetv1_controls -->
+
+    <!-- tiny_face_detector_controls -->
+    <span id="tiny_face_detector_controls">
+      <div class="row side-by-side">
+        <div class="row input-field" style="margin-right: 20px;">
+          <select id="inputSize">
+            <option value="" disabled selected>Input Size:</option>
+            <option value="128">128 x 128</option>
+            <option value="160">160 x 160</option>
+            <option value="224">224 x 224</option>
+            <option value="320">320 x 320</option>
+            <option value="416">416 x 416</option>
+            <option value="512">512 x 512</option>
+            <option value="608">608 x 608</option>
+          </select>
+          <label>Input Size</label>
+        </div>
+        <div class="row">
+          <label for="scoreThreshold">Score Threshold:</label>
+          <input disabled value="0.5" id="scoreThreshold" type="text" class="bold">
+        </div>
+        <button
+          class="waves-effect waves-light btn"
+          onclick="onDecreaseScoreThreshold()"
+        >
+          <i class="material-icons left">-</i>
+        </button>
+        <button
+          class="waves-effect waves-light btn"
+          onclick="onIncreaseScoreThreshold()"
+        >
+          <i class="material-icons left">+</i>
+        </button>
+      </div>
+    </span>
+    <!-- tiny_face_detector_controls -->
+
+    <!-- mtcnn_controls -->
+    <span id="mtcnn_controls">
+      <div class="row side-by-side">
+        <div class="row">
+          <label for="minFaceSize">Minimum Face Size:</label>
+          <input disabled value="20" id="minFaceSize" type="text" class="bold">
+        </div>
+        <button
+          class="waves-effect waves-light btn"
+          onclick="onDecreaseMinFaceSize()"
+        >
+          <i class="material-icons left">-</i>
+        </button>
+        <button
+          class="waves-effect waves-light btn"
+          onclick="onIncreaseMinFaceSize()"
+        >
+          <i class="material-icons left">+</i>
+        </button>
+      </div>
+    </span>
+    <!-- mtcnn_controls -->
+
+  </body>
 </body>
 
-
   <script>
-    let forwardTimes = []
-
-    const labels = ['jeff', 'juan', 'nathanael', 'duncan']
-    // Compute one face descriptor from an example image for each person
-    const labeledFaceDescriptors = await Promise.all(
-      labels.map(async label => {
-        // fetch image data from urls and convert blob to HTMLImage element
-        const imgUrl = `${label}.png`
-        const img = await faceapi.fetchImage(imgUrl)
-        
-        // detect the face with the highest score in the image and compute it's landmarks and face descriptor
-        const fullFaceDescriptor = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor()
-
-        if (!fullFaceDescription) {
-          throw new Error(`no faces detected for ${label}`)
-        }
-
-        const faceDescriptors = [fullFaceDescription.descriptor]
-        return new faceapi.labeledFaceDescriptors(label, faceDescriptors)
-        })
-    )
-
-    // query face descriptor by computing the distance
     const maxDescriptorDistance = 0.6
-
-
-
-    const facematcher = new faceapi.FaceMatcher(labelledFaceDescriptors, maxDescriptorDistance)
-    const results = fullFaceDescriptions.map(fd => faceMatcher.findBestMatch(fd.descriptor))
-
-
-    function updateTimeStats(timeInMs) {
-      forwardTimes = [timeInMs].concat(forwardTimes).slice(0, 30)
-      const avgTimeInMs = forwardTimes.reduce((total, t) => total + t) / forwardTimes.length
-      $('#time').val(`${Math.round(avgTimeInMs)} ms`)
-      $('#fps').val(`${faceapi.round(1000 / avgTimeInMs)}`)
-    }
+    const labels =['jeff', 'juan', 'nathanael', 'duncan']
 
     async function onPlay() {
-      const video = $('#inputVideo').get(0)
+      const videoEl = $('#inputVideo').get(0)
 
-      if(video.paused || video.ended || !isFaceDetectionModelLoaded())
+      if(videoEl.paused || videoEl.ended || !isFaceDetectionModelLoaded())
         return setTimeout(() => onPlay())
-
 
       const options = getFaceDetectorOptions()
 
-      const ts = Date.now()
+      const input = document.getElementById('inputVideo')
 
+      const fullFaceDescriptions = await faceapi.detectAllFaces(input, options).withFaceLandmarks().withFaceDescriptors()
 
-      const result = await faceapi.detectAllFaces(video, options)
+      const labeledFaceDescriptors = await Promise.all (
+        labels.map(async label => {
+          // fetch image data from urls and convert blob to HTMLImage element
+          const imgUrl = `${label}.png`
+          const img = await faceapi.fetchImage(imgUrl)
 
-      updateTimeStats(Date.now() - ts)
+          // detect the face with the highest score in the image and compute it's landmarks and face
+          const fullFaceDescription = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptors()
 
-      if (result) {
-        const canvas = $('#overlay').get(0)
-        const dims = faceapi.matchDimensions(canvas, video, true)
-        faceapi.draw.drawDetections(canvas, faceapi.resizeResults(result, dims))
-      }
+          if (!fullFaceDescription) {
+            throw new Error(`no faces detected for ${label}`)
+          }
 
-      setTimeout(() => onPlay())
-    }
+        const faceDescriptors = [fullFaceDescription.descriptor]
+        return new faceapi.LabeledFaceDescriptors(label, faceDescriptors)
+        })
+      )
 
-    // new code
-    results.forEach((bestMatch, i) => {
-      const box = fullFaceDescription[i].detection.box
-      const text = bestMatch.toString()
-      const drawBox = new faceapi.draw.drawBox(box, {label: text })
-      drawBox.draw(canvas)
-    })
+      const faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, maxDescriptorDistance)
 
-    async function run() {
-      // load face detection model
-      await changeFaceDetector(SSD_MOBILENETV1)
+      const results = fullFaceDescriptions.map(fd => faceMatcher.findBestMatch(fd.descriptor))
+
+      results.forEach((bestMatch, i) => {
+        const box = fullFaceDescriptions[i].detection.box
+        const text = bestMatch.toString()
+        const drawBox = new faceapi.draw.DrawBox(box, {label: text})
+        drawBox.draw(canvas)
+      })
+
+      setTimeout(() => onPlay(videoEl))
+  }
+
+  async function run() {
+      // load face detection and face landmark models
+      await changeFaceDetector(selectedFaceDetector)
       await faceapi.loadFaceLandmarkModel('/')
       await faceapi.loadFaceRecognitionModel('/')
-
-
-      changeInputSize(128)
+      changeInputSize(224)
 
       // try to access users webcam and stream the images
       // to the video element
-      const stream = await navigator.mediaDevices.getUserMedia({ video: {} })
-      const video = $('#inputVideo').get(0)
-      video.srcObject = stream
-    }
+      const videoEl = document.getElementById('inputVideo')
+      navigator.getUserMedia(
+        { video: {} },
+        stream => videoEl.srcObject = stream,
+        err => console.error(err)
+        )
+  }
 
-    function updateResults() {}
+  function updateResults() {}
 
-    $(document).ready(function() {
-      renderNavBar('#navbar', 'webcam_face_recognition')
-      initFaceDetectionControls()
-      run()
-    })
+  $(document).ready(function() {
+    renderNavBar('#navbar', 'webcam_face_recognition')
+    initFaceDetectionControls()
+    run()
+  })
   </script>
 </body>
 </html>

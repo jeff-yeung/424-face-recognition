@@ -63,6 +63,10 @@ function renderNavBar(navbarId, exampleUri) {
     {
       uri: 'webcam_face_recognition',
       name: 'Webcam Face Recognition'
+    },
+    {
+      uri: 'webcam_face_recognition_mtcnn',
+      name: 'Webcam Face Recognition MCTNN'
     }
   ]
 

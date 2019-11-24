@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="face-api.js"></script>
+  <script src="js/commons.js"></script>
+  <script src="js/faceDetectionControls.js"></script>
+  <script src="js/imageSelectionControls.js"></script>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/css/materialize.css">
+  <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.100.2/js/materialize.min.js"></script>
+</head>
+
+<body>
+  <div id="navbar"></div>
+  <div class="center-content page-container">
+    
+
+    <div class="progress" id="loader">
+      <div class="indeterminate"></div>
+    </div>
+    <div style="position: relative" class="margin">
+      <video onloadedmetadata="onPlay(this)" id="inputVideo" autoplay muted playsinline></video>
+      <canvas id="overlayVideo" />
+    </div>
+
+    <div class="row" style="width: 220px;">
+      <input type="checkbox" id="hideBoundingBoxesCheckbox" onchange="onChangeHideLandmarks(event)" />
+      <label for="hideBoundingBoxesCheckbox">Hide Bounding Boxes</label>
+    </div>
+
+    <!-- Display reference Image -------------------->
+    <p> Reference Image: </p>
+
+    <div style="position: relative" class="margin">
+      <img id="refImg" src="" style="max-width: 800px;" />
+      <canvas id="refImgOverlay" class="overlay"/>
+    </div>
+
+    <div class="row side-by-side">
+      <div class="row">
+        <label>Upload Image:</label>
+        <div>
+          <input id="refImgUploadInput" type="file" class="bold" onchange="uploadRefImage()" accept=".jpg, .jpeg, .png">
+        </div>
+      </div>
+      <div class="row">
+        <label for="refImgUrlInput">Get image from URL:</label>
+        <input id="refImgUrlInput" type="text" class="bold">
+      </div>
+      <button
+        class="waves-effect waves-light btn"
+        onclick="loadRefImageFromUrl()"
+      >
+        Ok
+      </button>
+     </div>
+     <!---------------------------------------------->
+
+  </div>
+    
+</body>
+
+  <script>
+    
+    let faceMatcher = null
+    let landmarks = true
+    /*
+    // ----- Uploading the reference images ----------------------------//
+    async function uploadRefImage(e) {
+      const imgFile = $('#refImgUploadInput').get(0).files[0]
+      const img = await faceapi.bufferToImage(imgFile)
+      $('#refImg').get(0).src = img.src
+      updateReferenceImageResults()
+    }
+
+    async function loadRefImageFromUrl(url) {
+      const img = await requestExternalImage($('#refImgUrlInput').val())
+      $('#refImg').get(0).src = img.src
+      updateReferenceImageResults()
+    }
+
+    async function updateReferenceImageResults() {
+      const inputImgEl = $('#refImg').get(0)
+      const canvas = $('#refImgOverlay').get(0)
+
+      const fullFaceDescriptions = await faceapi
+        .detectAllfaces(inputImgEl, getFaceDetectorOptions())
+        .withFaceLandmarks()
+        .withFaceDescriptors()
+
+      if (!fullFaceDescriptions.length) {
+        return
+      }
+
+      // create FaceMatcher with automatically assigned labels
+      // from the detection results for the reference image
+      faceMatcher = new faceapi.FaceMatcher(fullFaceDescriptions)
+
+      faceapi.matchDimensions(canvas, inputImgEl)
+      // resize detection and landmarks in case displayed image is smaller than
+      // original sizsizee
+      const resizedResults = faceapi.resizeResults(fullFaceDescriptions, inputImgEl)
+      // draw boxes with the corresponding label as text
+      const labels = faceMatcher.labeledDescriptors
+        .map(ld => ld.label)
+      resizedResults.forEach(({ detection, descriptor }) => {
+        const label = faceMatcher.findBestMatch(descriptor).toString()
+        const options = { label }
+        const drawBox = new faceapi.draw.DrawBox(detection.box, options)
+        drawBox.draw(canvas)
+      })
+    }
+
+    // ----------------------------------------------------------------------------------//
+    */
+    function onChangeHideLandmarks(e) {
+      landmarks = !$(e.target).prop('checked')
+    }
+
+    async function onPlay() {
+      const videoEl = $('#inputVideo').get(0)
+
+      if(videoEl.paused || videoEl.ended || !isFaceDetectionModelLoaded())
+        return setTimeout(() => onPlay())
+
+      //const results = await faceapi.detectAllfaces(videoEl, options).withFaceLandmarks().withFaceDescriptors()
+      const result = await faceapi
+      .detectSingleFace(videoEl, getFaceDetectorOptions())
+      .withFaceLandmarks()
+      .withFaceDescriptors()
+
+      if (result) {
+        const canvas = $('#overlayVideo').get(0)
+        const dims = faceapi.matchDimensions(canvas, videoEl, true)
+        const resizedResult = faceapi.resizeResults(result, dims)
+
+        const label = faceMatcher.findBestMatch(descriptor).toString()
+        const options = { label }
+        const drawBox = new faceapi.draw.DrawBox(detection.box,options)
+        if (landmarks) {
+          faceapi.draw.drawDetections(canvas, resizedResult)
+          faceapi.draw.drawFaceLandmarks(canvas, resizedResult)
+        }      
+        drawBox.draw(canvas)
+      }
+
+      setTimeout(() => onPlay())
+    }
+
+    async function run() {
+      // load face detection and face landmark models
+      await changeFaceDetector(TINY_FACE_DETECTOR)
+      await faceapi.loadFaceLandmarkModel('/')
+      await faceapi.loadFaceRecognitionModel('/')
+      changeInputSize(224)
+
+      // try to access users webcam and stream the images
+      // to the video element
+      const stream = await navigator.mediaDevices.getUserMedia({ video: {} })
+      const videoEl = $('#inputVideo').get(0)
+      videoEl.srcObject = stream
+    }
+
+    function updateResults() {}
+
+    $(document).ready(function() {
+      renderNavBar('#navbar', 'webcam_face_recognition_mtcnn')
+      initFaceDetectionControls()
+      run()
+    })
+
+  </script>
+</body>
+</html>
