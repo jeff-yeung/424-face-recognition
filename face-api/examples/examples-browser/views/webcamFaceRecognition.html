@@ -11,12 +11,14 @@
       <video onloadedmetadata="onPlay(this)" id="inputVideo" autoplay muted playsinline></video>
       <canvas id="overlay" />
     </div>
+
+    
 </body>
 
 
   <script>
     let forwardTimes = []
-    
+
     const labels = ['jeff', 'juan', 'nathanael', 'duncan']
     // Compute one face descriptor from an example image for each person
     const labeledFaceDescriptors = await Promise.all(
