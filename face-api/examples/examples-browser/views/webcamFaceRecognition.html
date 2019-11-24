@@ -14,14 +14,10 @@
 </body>
 
 
-
   <script>
     let forwardTimes = []
-    const labels = ['jeff', 'juan', 'nathanael']
-    // query face descriptor by computing the distance
-    const maxDescriptorDistance = 0.6
-
-
+    
+    const labels = ['jeff', 'juan', 'nathanael', 'duncan']
     // Compute one face descriptor from an example image for each person
     const labeledFaceDescriptors = await Promise.all(
       labels.map(async label => {
@@ -40,6 +36,11 @@
         return new faceapi.labeledFaceDescriptors(label, faceDescriptors)
         })
     )
+
+    // query face descriptor by computing the distance
+    const maxDescriptorDistance = 0.6
+
+
 
     const facematcher = new faceapi.FaceMatcher(labelledFaceDescriptors, maxDescriptorDistance)
     const results = fullFaceDescriptions.map(fd => faceMatcher.findBestMatch(fd.descriptor))
@@ -104,7 +105,7 @@
     function updateResults() {}
 
     $(document).ready(function() {
-      renderNavBar('#navbar', 'webcam_face_detection')
+      renderNavBar('#navbar', 'webcam_face_recognition')
       initFaceDetectionControls()
       run()
     })
